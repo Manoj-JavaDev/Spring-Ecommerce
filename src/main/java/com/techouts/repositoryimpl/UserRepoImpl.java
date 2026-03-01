@@ -27,7 +27,7 @@ public class UserRepoImpl implements UserRepo {
     @Override
     public Optional<User> findByEmail(String email) {
         return sessionFactory.getCurrentSession()
-                .createQuery("FROM User u WHERE u.email = :email", User.class)
+                .createQuery("FROM User u WHERE lower(u.email) = lower(:email)", User.class)
                 .setParameter("email", email)
                 .uniqueResultOptional();
     }

@@ -1,7 +1,10 @@
 package com.techouts.controller;
 
 import com.techouts.model.Product;
+import com.techouts.model.User;
 import com.techouts.service.ProductService;
+import com.techouts.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,9 +21,14 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
-
+    @Autowired
+    private UserService userService;
     @GetMapping("/products")
-    public String listProducts(@RequestParam(value = "category" , required = false) String category, @RequestParam(value = "search" , required = false) String search,Model model) {
+    public String listProducts(@RequestParam(value = "category" , required = false) String category,
+                               @RequestParam(value = "search" , required = false) String search,
+                               Principal principal,
+                               HttpSession session,
+                               Model model) {
 
         List<Product> products;
 
@@ -33,6 +42,11 @@ public class ProductController {
             products = productService.findAll();
         }
         model.addAttribute("products", products);
+        System.out.println(principal.getName());
+        User user= userService.findByEmail(principal.getName()).get();
+        System.out.println(user.getName());
+        System.out.println(user.getEmail());
+        session.setAttribute("user",user);
         return "index";
     }
 

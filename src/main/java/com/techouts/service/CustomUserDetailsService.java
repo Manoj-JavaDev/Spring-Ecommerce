@@ -14,22 +14,34 @@ import java.util.Optional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepo userRepository;
+    private UserService userService;
 
     @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        System.out.println(">>> LoadUserByUsername executing for email: " + email);
 
-        Optional<User> userOptional = userRepository.findByEmail(email);
-        User user = userOptional.get();
+        // Make the query case-insensitive
+        Optional<User> optionalUser = userService.findByEmail(email);
 
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
+        if (optionalUser.isEmpty()) {
+            System.out.println(">>> User not found for email: " + email);
+            throw new UsernameNotFoundException("User not found with email: " + email);
         }
 
+        User user = optionalUser.get();
+
+        // Debug info
+        System.out.println(">>> User found:");
+        System.out.println("Email: " + user.getEmail());
+        System.out.println("Name: " + user.getName());
+        System.out.println("Password Hash: " + user.getPassword());
+        //System.out.println("Role: " + user.getRole());
+
+        // Build Spring Security UserDetails
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
-                .password(user.getPassword())
+                .password(user.getPassword())  // Password is already BCrypt-encoded
+                //.roles(user.getRole().name().replace("ROLE_", ""))  // CUSTOMER or ADMIN
                 .build();
     }
 }

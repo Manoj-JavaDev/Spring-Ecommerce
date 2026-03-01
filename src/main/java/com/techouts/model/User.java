@@ -2,6 +2,8 @@ package com.techouts.model;
 
 import com.techouts.model.Cart;
 import jakarta.persistence.*;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -42,8 +44,8 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private UserRole role = UserRole.CUSTOMER;
-    
+    private UserRole role = UserRole.ROLE_CUSTOMER;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
@@ -134,7 +136,7 @@ public class User {
     public UserRole getRole() {
         return role;
     }
-    
+
     public void setRole(UserRole role) {
         this.role = role;
     }
@@ -156,7 +158,7 @@ public class User {
     }
     
     public enum UserRole {
-        CUSTOMER, ADMIN
+        ROLE_CUSTOMER, ROLE_ADMIN
     }
 
     @Column(name = "profile_image")

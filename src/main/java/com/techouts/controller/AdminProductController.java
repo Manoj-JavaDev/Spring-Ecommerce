@@ -72,7 +72,7 @@ public class AdminProductController {
     public String listProducts(Model model,HttpSession session) {
         User user = (User) session.getAttribute("user");
 
-        if (user == null || user.getRole() != User.UserRole.ADMIN) {
+        if (user == null || user.getRole() != User.UserRole.ROLE_ADMIN) {
             return "redirect:/login";
         }
         model.addAttribute("products", productService.findAll());

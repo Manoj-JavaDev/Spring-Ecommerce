@@ -46,6 +46,7 @@ public class CartController {
     @GetMapping("/view")
     public String viewCart(HttpSession session, Model model) {
         User user = (User) session.getAttribute("user");
+        System.out.println(user.getName());
         if (user == null) return "redirect:/login";
 
         Cart cart = cartService.getCart(user);

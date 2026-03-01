@@ -5,6 +5,7 @@ import com.techouts.model.User;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 @Entity
 public class Cart {
@@ -17,7 +18,7 @@ public class Cart {
     private User user;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CartProducts> cartProducts;
+    private List<CartProducts> cartProducts = new ArrayList<>();
 
     // ========================
     // Helper Methods
@@ -48,7 +49,7 @@ public class Cart {
     }
 
     public BigDecimal getTotalAmount() {
-        BigDecimal total = null;
+        BigDecimal total = BigDecimal.ZERO;
         for (CartProducts cp : cartProducts) {
             assert false;
             total.add(cp.getProduct().getPrice().multiply(BigDecimal.valueOf(cp.getQuantity())));
@@ -76,9 +77,6 @@ public class Cart {
         return cartProducts;
     }
 
-    public void setCartProducts(List<CartProducts> cartProducts) {
-        this.cartProducts = cartProducts;
-    }
 
     public int getTotalItems() {
         int count = 0;

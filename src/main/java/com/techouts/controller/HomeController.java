@@ -1,11 +1,18 @@
 package com.techouts.controller;
 
+import com.techouts.model.Product;
 import com.techouts.model.User;
 import com.techouts.service.CartService;
 import com.techouts.service.OrdersService;
+import com.techouts.service.ProductService;
 import com.techouts.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,16 +22,23 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.io.File;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 @Controller
 public class HomeController {
 
     @Autowired
+    ProductService productService;
+    @Autowired
     UserService userService;
     @GetMapping({"/","/index"})
-    public String getLogin() {
-        return "forward:/products";
+    public String home(Model model) {
+
+        List<Product> products = productService.findAll();
+        model.addAttribute("products", products);
+
+        return "index";
     }
 
     @GetMapping("/login")
@@ -32,45 +46,13 @@ public class HomeController {
         return "login";
     }
 
-    @PostMapping
-    public String loginUser() {
-        return "redirect:/products";
-    }
 
-    @PostMapping("/login")
-    public String loginUser(@RequestParam("email") String email,
-                            @RequestParam("password") String password,
-                            HttpSession session,
-                            RedirectAttributes redirectAttributes) {
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
-        Optional<User> userOpt = userService.findByEmail(email);
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
-        if (userOpt.isEmpty()) {
-            // No such user
-            redirectAttributes.addFlashAttribute("error", "Invalid email or password");
-            return "redirect:/login";
-        }
-
-        User user = userOpt.get();
-        // Check password
-        if (!user.getPassword().equals(password)) {
-            redirectAttributes.addFlashAttribute("error", "Invalid email or password");
-            return "redirect:/login";
-        }
-        // Login successful
-        session.setAttribute("user", user);
-
-        return "redirect:/products";
-    }
-
-    @GetMapping("/logout")
-    public String logout(HttpSession session,
-                         RedirectAttributes redirectAttributes) {
-        session.invalidate();
-        redirectAttributes.addFlashAttribute("message",
-                "You have been logged out successfully.");
-        return "redirect:/products";
-    }
     @GetMapping("/register")
     public String register() {
         return "register";
@@ -78,9 +60,11 @@ public class HomeController {
 
     @PostMapping("/register")
     public String registerUser(@ModelAttribute User user,
-                               HttpSession session,RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes) {
+
         Optional<User> existingUser = userService.findByEmail(user.getEmail());
         Optional<User> userByPhone  = userService.findByPhone(user.getPhone());
+
         if (existingUser.isPresent()) {
             redirectAttributes.addFlashAttribute("error", "Email already exists");
             return "redirect:/register";
@@ -91,13 +75,28 @@ public class HomeController {
             return "redirect:/register";
         }
 
-        // Save user into DB
+        String rawPassword = user.getPassword();
+
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(User.UserRole.ROLE_CUSTOMER);
         userService.save(user);
 
-        // Create session
-        session.setAttribute("user", user);
 
-        // Redirect to products page
+      /*  Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        rawPassword
+                )
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);*/
+
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(user.getEmail(), rawPassword);
+        Authentication auth = authenticationManager.authenticate(authToken);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+
         return "redirect:/products";
     }
 
@@ -106,13 +105,15 @@ public class HomeController {
     @Autowired
     OrdersService ordersService;
     @GetMapping("/profile")
-    public String profile(Model model, HttpSession session) {
+    public String profile(Model model, Principal principal) {
 
-        User user = (User) session.getAttribute("user");
 
-        if (user == null) {
+        if (principal == null) {
             return "redirect:/login";
         }
+        String email = principal.getName();
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         int cartCount = cartService.getCartProductCount(user);
         int orderCount = ordersService.getOrderCount(user);
@@ -130,10 +131,16 @@ public class HomeController {
                                 @RequestParam("phone") String phone,
                                 @RequestParam("address") String address,
                                 @RequestParam("imageFile") MultipartFile file,
-                                HttpSession session,
+                                Principal principal,
                                 RedirectAttributes redirectAttributes) throws IOException {
 
-        User user = (User) session.getAttribute("user");
+        if (principal == null) {
+            return "redirect:/login";
+        }
+
+        String emailFromSession = principal.getName();
+        User user = userService.findByEmail(emailFromSession)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
 
         if (!user.getEmail().equals(email)) {
@@ -153,13 +160,13 @@ public class HomeController {
             }
         }
 
-        // Update values
+
         user.setName(name);
         user.setEmail(email);
         user.setPhone(phone);
         user.setAddress(address);
 
-        // Image upload
+
         if (!file.isEmpty()) {
             String uploadDir = "C:/uploads/";
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
@@ -173,8 +180,11 @@ public class HomeController {
             user.setProfileImage(fileName);
         }
 
+
         userService.update(user);
-        session.setAttribute("user", user);
+
+
+        //session.setAttribute("user", user);
 
         redirectAttributes.addFlashAttribute("success", "Profile updated successfully!");
         return "redirect:/profile";
