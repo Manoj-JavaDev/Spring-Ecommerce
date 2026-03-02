@@ -24,8 +24,8 @@ public class ProductController {
     @Autowired
     private UserService userService;
     @GetMapping("/products")
-    public String listProducts(@RequestParam(value = "category" , required = false) String category,
-                               @RequestParam(value = "search" , required = false) String search,
+    public String listProducts(@RequestParam(value = "category", required = false) String category,
+                               @RequestParam(value = "search", required = false) String search,
                                Principal principal,
                                HttpSession session,
                                Model model) {
@@ -34,19 +34,21 @@ public class ProductController {
 
         if (search != null && !search.trim().isEmpty()) {
             products = productService.search(search.trim());
-        }
-        else if (category != null && !category.trim().isEmpty()) {
+        } else if (category != null && !category.trim().isEmpty()) {
             products = productService.findByCategory(category);
-        }
-        else {
+        } else {
             products = productService.findAll();
         }
+
         model.addAttribute("products", products);
-        System.out.println(principal.getName());
-        User user= userService.findByEmail(principal.getName()).get();
-        System.out.println(user.getName());
-        System.out.println(user.getEmail());
-        session.setAttribute("user",user);
+
+        if (principal != null) {
+            userService.findByEmail(principal.getName()).ifPresent(user -> {
+                session.setAttribute("user", user);
+                System.out.println("Logged-in user: " + user.getName() + " | " + user.getEmail());
+            });
+        }
+
         return "index";
     }
 

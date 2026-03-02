@@ -20,13 +20,10 @@ public class Cart {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartProducts> cartProducts = new ArrayList<>();
 
-    // ========================
-    // Helper Methods
-    // ========================
 
     public void addProduct(Product product) {
 
-        // Check if product already exists
+
         for (CartProducts cp : cartProducts) {
             if (cp.getProduct().getId().equals(product.getId())) {
                 cp.setQuantity(cp.getQuantity() + 1);
@@ -34,7 +31,7 @@ public class Cart {
             }
         }
 
-        // If not exists, create new
+
         CartProducts cp = new CartProducts();
         cp.setCart(this);
         cp.setProduct(product);
@@ -86,5 +83,4 @@ public class Cart {
         return count;
     }
 
-    // getters and setters
 }

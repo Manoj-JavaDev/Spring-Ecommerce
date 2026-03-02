@@ -27,7 +27,7 @@ public class CartController {
     private UserService userService;
 
     @Autowired
-    private ProductService productService; // manually implemented like UserService
+    private ProductService productService;
 
     @PostMapping("/add/{productId}")
     public String addToCart(@PathVariable("productId") Long productId, HttpSession session) {
@@ -46,7 +46,7 @@ public class CartController {
     @GetMapping("/view")
     public String viewCart(HttpSession session, Model model) {
         User user = (User) session.getAttribute("user");
-        System.out.println(user.getName());
+        //System.out.println(user.getName());
         if (user == null) return "redirect:/login";
 
         Cart cart = cartService.getCart(user);

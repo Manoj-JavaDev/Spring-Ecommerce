@@ -2,16 +2,16 @@ package com.techouts.controller;
 
 import com.techouts.model.Product;
 import com.techouts.model.User;
-import com.techouts.service.CartService;
-import com.techouts.service.OrdersService;
-import com.techouts.service.ProductService;
-import com.techouts.service.UserService;
+import com.techouts.service.*;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -58,12 +58,15 @@ public class HomeController {
         return "register";
     }
 
+    @Autowired
+    CustomUserDetailsService customUserDetailsService;
+
     @PostMapping("/register")
     public String registerUser(@ModelAttribute User user,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes, HttpSession httpSession, HttpServletRequest request) throws ServletException {
 
         Optional<User> existingUser = userService.findByEmail(user.getEmail());
-        Optional<User> userByPhone  = userService.findByPhone(user.getPhone());
+        Optional<User> userByPhone = userService.findByPhone(user.getPhone());
 
         if (existingUser.isPresent()) {
             redirectAttributes.addFlashAttribute("error", "Email already exists");
@@ -75,30 +78,19 @@ public class HomeController {
             return "redirect:/register";
         }
 
+        // Encoding the password and saving user
         String rawPassword = user.getPassword();
-
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(User.UserRole.ROLE_CUSTOMER);
         userService.save(user);
 
+        request.login(user.getEmail(), rawPassword);
 
-      /*  Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        rawPassword
-                )
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);*/
-
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(user.getEmail(), rawPassword);
-        Authentication auth = authenticationManager.authenticate(authToken);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
+        httpSession.setAttribute("user", user);
 
         return "redirect:/products";
     }
+
 
     @Autowired
     CartService cartService;
